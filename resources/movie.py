@@ -5,6 +5,12 @@ from flask_jwt_extended import jwt_required
 from mongoengine.errors import FieldDoesNotExist, NotUniqueError, DoesNotExist, ValidationError, InvalidQueryError
 from resources.errors import SchemaValidationError, MovieAlreadyExistsError, InternalServerError, UpdatingMovieError, DeletingMovieError, MovieNotExistsError
 from pymongo.errors import DuplicateKeyError
+import logging
+
+
+
+logger = logging.getLogger(__name__)
+
 
 class MoviesApi(Resource):
     @jwt_required
@@ -18,15 +24,14 @@ class MoviesApi(Resource):
             body = request.get_json()
             movie = Movie(**body).save()
             id = movie.id
+            logger.info('MoviesApi -- Movie saved successfully')
             return {'id': str(id)}, 200
-        except (FieldDoesNotExist, ValidationError):
-            raise SchemaValidationError
-        except DuplicateKeyError:
-            raise MovieAlreadyExistsError
         except NotUniqueError:
-            raise MovieAlreadyExistsError
-        except Exception as e:
-            raise InternalServerError
+            logger.error('MoviesApi -- Movie error occured.')
+            return {
+                "message": "Movie with given name already exists",
+                "status": 400
+            }
 
 
 class MovieApi(Resource):
